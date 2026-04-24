@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /c/Users/ZBJ/Desktop/SmallCar log --oneline -5)",
+      "Bash(git -C /c/Users/ZBJ/Desktop/SmallCar status)"
+    ]
+  }
+}

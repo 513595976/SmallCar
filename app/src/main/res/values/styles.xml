@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.SmallCar" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="android:windowBackground">@color/bg_dark</item>
+        <item name="android:statusBarColor">@color/bg_dark</item>
+        <item name="android:navigationBarColor">@color/bg_dark</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="colorPrimary">@color/accent_blue</item>
+        <item name="colorAccent">@color/accent_gold</item>
+    </style>
+
+    <style name="HudButton">
+        <item name="android:textColor">@color/text_gold</item>
+        <item name="android:background">@drawable/btn_hud</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:padding">8dp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <style name="HudDialog" parent="Theme.MaterialComponents.Dialog">
+        <item name="android:windowBackground">@color/bg_dark</item>
+        <item name="colorPrimary">@color/accent_blue</item>
+        <item name="colorAccent">@color/accent_gold</item>
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_gold</item>
+        <item name="buttonBarPositiveButtonStyle">@style/HudDialogButton</item>
+        <item name="buttonBarNegativeButtonStyle">@style/HudDialogButton</item>
+    </style>
+
+    <style name="HudDialogButton" parent="Widget.MaterialComponents.Button.TextButton">
+        <item name="android:textColor">@color/accent_gold</item>
+    </style>
+</resources>

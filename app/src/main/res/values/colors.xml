@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg_dark">#0A0A0F</color>
+    <color name="hud_panel">#CC0D1117</color>
+    <color name="accent_gold">#FFD700</color>
+    <color name="accent_blue">#2979FF</color>
+    <color name="accent_blue_dim">#1A3A6B</color>
+    <color name="joystick_ring">#2979FF</color>
+    <color name="joystick_thumb">#FFD700</color>
+    <color name="btn_normal">#1A2A4A</color>
+    <color name="btn_pressed">#2979FF</color>
+    <color name="btn_border">#2979FF</color>
+    <color name="text_primary">#E8E8FF</color>
+    <color name="text_gold">#FFD700</color>
+    <color name="status_connected">#00E676</color>
+    <color name="status_disconnected">#FF1744</color>
+    <color name="speed_track">#1A2A4A</color>
+    <color name="speed_thumb">#FFD700</color>
+</resources>
