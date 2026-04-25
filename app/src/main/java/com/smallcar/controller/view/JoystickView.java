@@ -30,7 +30,8 @@ public class JoystickView extends View {
     public JoystickView(Context context, AttributeSet attrs) { super(context, attrs); init(); }
 
     private void init() {
-        bgPaint.setColor(0x33FFFFFF);
+        // 背景圆环改为完全透明
+        bgPaint.setColor(0x00000000);
         bgPaint.setStyle(Paint.Style.FILL);
 
         glowPaint.setColor(0xFF2979FF);
@@ -42,7 +43,7 @@ public class JoystickView extends View {
         ringPaint.setStyle(Paint.Style.STROKE);
         ringPaint.setStrokeWidth(3f);
 
-        thumbPaint.setColor(0xFFFFD700);
+        thumbPaint.setColor(0xD9FFFFFF); // 白色，约85%透明度
         thumbPaint.setStyle(Paint.Style.FILL);
         thumbPaint.setMaskFilter(new BlurMaskFilter(8f, BlurMaskFilter.Blur.OUTER));
 

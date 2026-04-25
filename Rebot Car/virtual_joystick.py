@@ -1,3 +1,4 @@
+import json
 import math
 
 class VirtualJoystick:
@@ -5,24 +6,48 @@ class VirtualJoystick:
     虚拟摇杆类 - 与手机APP关联
     用于接收和处理手机APP的摇杆输入数据
     """
-    
-    def __init__(self, x=0.0, y=0.0, intensity=0.0):
+
+    BEHAVIOR_WANDER = 0
+    BEHAVIOR_ATTACK = 1
+
+    SERVO_CENTER = 0
+    SERVO_LEFT = -1
+    SERVO_RIGHT = 1
+
+    def __init__(self, x=0.0, y=0.0, intensity=0.0,
+                 behavior=BEHAVIOR_WANDER, debug=False,
+                 fire=False, target_offset=0.0):
         """
         初始化虚拟摇杆
-        
+
         :param x: X轴值（-1.0到1.0，0为中间）
         :param y: Y轴值（-1.0到1.0，0为中间）
         :param intensity: 强度值（0到1.0）
+        :param behavior: 行为模式（0=游走，1=攻击）
+        :param debug: 是否进入调试模式
+        :param fire: 是否触发发射
+        :param target_offset: 攻击目标相机偏移量（-1.0到1.0）
         """
-        self._x = 0.0  # X轴
-        self._y = 0.0  # Y轴
+        self._raw_x = 0.0
+        self._raw_y = 0.0
+        self._x = 0.0  # 实际x轴输出
+        self._y = 0.0  # 实际y轴输出
         self._intensity = 0.0  # 强度
         self._dead_zone = 0.05  # 死区阈值（小于此值视为0）
-        
+        self._behavior = self.BEHAVIOR_WANDER
+        self._debug_mode = False
+        self._fire_state = 0
+        self._target_offset = 0.0
+        self._wander_mode_just_switched = False
+
         # 初始化值
+        self.set_behavior(behavior)
+        self.set_debug_mode(debug)
+        self.set_fire_state(fire)
         self.set_x(x)
         self.set_y(y)
         self.set_intensity(intensity)
+        self.set_target_offset(target_offset)
     
     def set_x(self, x):
         """
@@ -31,10 +56,81 @@ class VirtualJoystick:
         :param x: X轴值（-1.0到1.0，0为中间）
         :return: None
         """
-        self._x = max(-1.0, min(1.0, x))
-        # 应用死区处理
+        self._raw_x = max(-1.0, min(1.0, x))
+        self._apply_debug_filter()
+
+    def set_y(self, y):
+        """
+        设置Y轴值
+        
+        :param y: Y轴值（-1.0到1.0，0为中间）
+        :return: None
+        """
+        self._raw_y = max(-1.0, min(1.0, y))
+        self._apply_debug_filter()
+
+    def set_intensity(self, intensity):
+        """
+        设置强度值
+        
+        :param intensity: 强度值（0到1.0）
+        :return: None
+        """
+        if intensity is None:
+            intensity = self.calculate_magnitude()
+        self._intensity = max(0.0, min(1.0, intensity))
+
+    def set_behavior(self, behavior):
+        """
+        设置行为模式
+        :param behavior: 0=游走，1=攻击
+        :return: None
+        """
+        old_behavior = self._behavior
+        self._behavior = self.BEHAVIOR_ATTACK if behavior == self.BEHAVIOR_ATTACK else self.BEHAVIOR_WANDER
+        if self._behavior == self.BEHAVIOR_WANDER and old_behavior != self.BEHAVIOR_WANDER:
+            self._wander_mode_just_switched = True
+
+    def set_debug_mode(self, debug):
+        """
+        设置调试模式
+        :param debug: bool
+        :return: None
+        """
+        self._debug_mode = bool(debug)
+        self._apply_debug_filter()
+
+    def set_fire_state(self, fire):
+        """
+        设置发射状态
+        :param fire: bool
+        :return: None
+        """
+        self._fire_state = 1 if fire else 0
+
+    def set_target_offset(self, offset):
+        """
+        设置相机目标偏移，用于攻击模式伺服控制
+        :param offset: -1.0到1.0
+        :return: None
+        """
+        self._target_offset = max(-1.0, min(1.0, offset))
+
+    def _apply_debug_filter(self):
+        """
+        根据调试模式过滤X/Y轴输入，使其只保留主方向
+        """
+        self._x = self._raw_x
+        self._y = self._raw_y
+        if self._debug_mode:
+            if abs(self._raw_x) > abs(self._raw_y):
+                self._y = 0.0
+            else:
+                self._x = 0.0
         if abs(self._x) < self._dead_zone:
             self._x = 0.0
+        if abs(self._y) < self._dead_zone:
+            self._y = 0.0
     
     def get_x(self):
         """
@@ -43,19 +139,7 @@ class VirtualJoystick:
         :return: X轴值（-1.0到1.0）
         """
         return self._x
-    
-    def set_y(self, y):
-        """
-        设置Y轴值
-        
-        :param y: Y轴值（-1.0到1.0，0为中间）
-        :return: None
-        """
-        self._y = max(-1.0, min(1.0, y))
-        # 应用死区处理
-        if abs(self._y) < self._dead_zone:
-            self._y = 0.0
-    
+
     def get_y(self):
         """
         获取Y轴值
@@ -63,16 +147,7 @@ class VirtualJoystick:
         :return: Y轴值（-1.0到1.0）
         """
         return self._y
-    
-    def set_intensity(self, intensity):
-        """
-        设置强度值
-        
-        :param intensity: 强度值（0到1.0）
-        :return: None
-        """
-        self._intensity = max(0.0, min(1.0, intensity))
-    
+
     def get_intensity(self):
         """
         获取强度值
@@ -80,7 +155,7 @@ class VirtualJoystick:
         :return: 强度值（0到1.0）
         """
         return self._intensity
-    
+
     def calculate_magnitude(self):
         """
         根据X、Y轴计算摇杆的实际幅度（距离中心的距离）
@@ -157,18 +232,31 @@ class VirtualJoystick:
         self._y = 0.0
         self._intensity = 0.0
     
-    def update_from_app(self, x, y, intensity):
+    def update_from_app(self, x, y, intensity=None, behavior=None, debug=None,
+                        fire=None, target_offset=None):
         """
         从手机APP接收数据并更新摇杆状态
-        
+
         :param x: X轴值（-1.0到1.0）
         :param y: Y轴值（-1.0到1.0）
-        :param intensity: 强度值（0到1.0）
+        :param intensity: 强度值（0到1.0），若为None则使用XY轴幅度
+        :param behavior: 行为模式（0=游走，1=攻击）
+        :param debug: 是否调试模式
+        :param fire: 是否发射
+        :param target_offset: 攻击目标相机偏移（-1.0到1.0）
         :return: None
         """
         self.set_x(x)
         self.set_y(y)
-        self.set_intensity(intensity)
+        if behavior is not None:
+            self.set_behavior(behavior)
+        if debug is not None:
+            self.set_debug_mode(debug)
+        if fire is not None:
+            self.set_fire_state(fire)
+        if target_offset is not None:
+            self.set_target_offset(target_offset)
+        self.set_intensity(intensity if intensity is not None else self.calculate_magnitude())
     
     def get_direction(self):
         """
@@ -194,6 +282,34 @@ class VirtualJoystick:
         
         return "".join(directions) if directions else "轻微偏移"
     
+    def get_servo_command(self):
+        """
+        获取当前伺服控制命令
+        :return: -1（左）、0（中）、1（右）
+        """
+        if self._behavior == self.BEHAVIOR_WANDER:
+            if self._wander_mode_just_switched:
+                self._wander_mode_just_switched = False  # 清除标志，下次允许手动
+                return self.SERVO_CENTER  # 切换时调整到90度
+            return self.SERVO_CENTER  # 游走模式固定中心（手动控制在app端）
+        if self._behavior == self.BEHAVIOR_ATTACK:
+            if self._target_offset < -0.2:
+                return self.SERVO_LEFT
+            if self._target_offset > 0.2:
+                return self.SERVO_RIGHT
+            return self.SERVO_CENTER
+        return self.SERVO_CENTER
+
+    def get_speed(self):
+        """
+        获取实际发送的速度值
+        :return: 0-1.0
+        """
+        base_intensity = self._intensity
+        if self._debug_mode:
+            return min(1.0, base_intensity * 0.3)
+        return base_intensity
+
     def get_status(self):
         """
         获取摇杆的完整状态
@@ -208,8 +324,34 @@ class VirtualJoystick:
             'angle': self.get_angle_degrees(),
             'direction': self.get_direction(),
             'is_centered': self.is_centered(),
-            'is_moving': self.is_moving()
+            'is_moving': self.is_moving(),
+            'speed': self.get_speed(),
+            'servo': self.get_servo_command(),
+            'fire': self._fire_state,
+            'behavior': self._behavior,
+            'debug': 1 if self._debug_mode else 0,
+            'target_offset': self._target_offset
         }
+
+    def to_command_dict(self):
+        """
+        将当前摇杆状态转换为与APP命令对应的字典
+        """
+        return {
+            'x': round(self._x, 2),
+            'y': round(self._y, 2),
+            'speed': int(self.get_speed() * 100),
+            'servo': self.get_servo_command(),
+            'fire': self._fire_state,
+            'behavior': self._behavior,
+            'debug': 1 if self._debug_mode else 0
+        }
+
+    def to_json(self):
+        """
+        将当前摇杆命令转换为JSON字符串，便于发送
+        """
+        return json.dumps(self.to_command_dict(), ensure_ascii=False)
     
     def __str__(self):
         """字符串表示"""

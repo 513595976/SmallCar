@@ -21,6 +21,7 @@ public class CameraStreamView extends SurfaceView implements SurfaceHolder.Callb
     private Thread streamThread;
     private volatile boolean running = false;
     private String streamUrl;
+    private volatile float targetOffset = 0f;
     private final Paint paint = new Paint();
     private final Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
@@ -103,16 +104,77 @@ public class CameraStreamView extends SurfaceView implements SurfaceHolder.Callb
     }
 
     private void drawFrame(Bitmap bmp) {
+        updateTargetOffset(bmp);
         SurfaceHolder holder = getHolder();
         Canvas canvas = holder.lockCanvas();
         if (canvas == null) return;
         try {
             canvas.drawBitmap(bmp, null,
                     new android.graphics.Rect(0, 0, getWidth(), getHeight()), paint);
+            canvas.drawText(String.format("目标偏移: %.2f", targetOffset), getWidth() / 2f, 48f, textPaint);
         } finally {
             holder.unlockCanvasAndPost(canvas);
             bmp.recycle();
         }
+    }
+
+    private void updateTargetOffset(Bitmap bmp) {
+        int width = bmp.getWidth();
+        int height = bmp.getHeight();
+        long totalBrightness = 0;
+        long brightWeight = 0;
+        long weightedOffset = 0;
+
+        int stepX = Math.max(1, width / 80);
+        int stepY = Math.max(1, height / 60);
+        int sampleCount = 0;
+
+        for (int y = 0; y < height; y += stepY) {
+            for (int x = 0; x < width; x += stepX) {
+                int pixel = bmp.getPixel(x, y);
+                int r = (pixel >> 16) & 0xFF;
+                int g = (pixel >> 8) & 0xFF;
+                int b = pixel & 0xFF;
+                int brightness = (int) (0.299f * r + 0.587f * g + 0.114f * b);
+                totalBrightness += brightness;
+                sampleCount++;
+            }
+        }
+
+        if (sampleCount == 0) {
+            targetOffset = 0f;
+            return;
+        }
+
+        int average = (int) (totalBrightness / sampleCount);
+        int threshold = Math.min(255, average + 32);
+
+        for (int y = 0; y < height; y += stepY) {
+            for (int x = 0; x < width; x += stepX) {
+                int pixel = bmp.getPixel(x, y);
+                int r = (pixel >> 16) & 0xFF;
+                int g = (pixel >> 8) & 0xFF;
+                int b = pixel & 0xFF;
+                int brightness = (int) (0.299f * r + 0.587f * g + 0.114f * b);
+                if (brightness >= threshold) {
+                    int offset = x - width / 2;
+                    brightWeight += brightness;
+                    weightedOffset += (long) offset * brightness;
+                }
+            }
+        }
+
+        if (brightWeight == 0) {
+            targetOffset = 0f;
+            return;
+        }
+
+        float offsetRatio = (float) weightedOffset / brightWeight / (width / 2f);
+        targetOffset = Math.max(-1f, Math.min(1f, offsetRatio));
+    }
+
+    public float getTargetOffset() {
+        return targetOffset;
     }
 
     public void drawPlaceholder(String msg) {

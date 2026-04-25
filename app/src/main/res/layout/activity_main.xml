@@ -22,7 +22,7 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:layout_marginStart="20dp"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="10dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
@@ -56,7 +56,7 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:layout_marginStart="20dp"
-        android:layout_marginTop="100dp"
+        android:layout_marginTop="80dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
@@ -168,8 +168,8 @@
 
         <!-- Servo and fire controls on the right -->
         <FrameLayout
-            android:layout_width="120dp"
-            android:layout_height="120dp"
+            android:layout_width="150dp"
+            android:layout_height="150dp"
             android:layout_gravity="end|bottom"
             android:layout_marginEnd="20dp"
             android:layout_marginBottom="10dp">
@@ -177,8 +177,8 @@
             <ImageButton
                 android:id="@+id/btnFire"
                 style="@style/HudButton"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
                 android:layout_gravity="top|center_horizontal"
                 android:src="@drawable/ic_fire"
                 android:contentDescription="@string/fire"
@@ -187,8 +187,8 @@
             <ImageButton
                 android:id="@+id/btnServoLeft"
                 style="@style/HudButton"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
                 android:layout_gravity="bottom|start"
                 android:src="@drawable/ic_arrow_left"
                 android:contentDescription="@string/servo_left"
@@ -198,8 +198,8 @@
             <ImageButton
                 android:id="@+id/btnServoRight"
                 style="@style/HudButton"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
                 android:layout_gravity="bottom|end"
                 android:src="@drawable/ic_arrow_right"
                 android:contentDescription="@string/servo_right"

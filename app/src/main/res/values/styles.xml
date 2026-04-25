@@ -18,7 +18,8 @@
     </style>
 
     <style name="HudDialog" parent="Theme.MaterialComponents.Dialog">
-        <item name="android:windowBackground">@color/bg_dark</item>
+        <!-- 95% 不透明度的背景 -->
+        <item name="android:windowBackground">#F20A0A0F</item>
         <item name="colorPrimary">@color/accent_blue</item>
         <item name="colorAccent">@color/accent_gold</item>
         <item name="android:textColorPrimary">@color/text_primary</item>

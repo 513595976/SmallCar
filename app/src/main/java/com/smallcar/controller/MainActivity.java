@@ -37,10 +37,16 @@ public class MainActivity extends AppCompatActivity {
     private final TcpSocketManager tcp = new TcpSocketManager();
     private final Handler sendHandler = new Handler(Looper.getMainLooper());
 
-    private float joystickX = 0f, joystickY = 0f;
-    private int servoState = 0, fireState = 0, behaviorMode = 0;
+    private static final int BEHAVIOR_WANDER = 0;
+    private static final int BEHAVIOR_ATTACK = 1;
+
+    private float joystickX = 0f;
+    private float joystickY = 0f;
+    private float joystickIntensity = 0f;
+    private int servoState = 0, fireState = 0, behaviorMode = BEHAVIOR_WANDER;
     private boolean debugMode = false;
     private boolean sendPending = false;
+    private boolean wanderModeJustSwitched = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,11 +85,8 @@ public class MainActivity extends AppCompatActivity {
             }
             joystickX = x;
             joystickY = y;
-            float rawIntensity = (float) Math.sqrt(x * x + y * y);
-            float intensity = debugMode ? rawIntensity * 0.3f : rawIntensity;
-            tvIntensity.setText(String.format("%.2f", intensity));
-            tvX.setText(String.format("%.2f", x));
-            tvY.setText(String.format("%.2f", y));
+            joystickIntensity = Math.min(1f, (float) Math.sqrt(x * x + y * y));
+            updateJoystickMetrics();
             scheduleSend();
         });
 
@@ -136,20 +139,15 @@ public class MainActivity extends AppCompatActivity {
         });
 
         btnBehaviorToggle.setOnClickListener(v -> {
-            behaviorMode = 1 - behaviorMode; // Toggle between 0 and 1
-            if (behaviorMode == 0) {
-                btnBehaviorToggle.setImageResource(R.drawable.ic_wander);
-                tvBehaviorStatus.setText("游走");
-            } else {
-                btnBehaviorToggle.setImageResource(R.drawable.ic_attack);
-                tvBehaviorStatus.setText("攻击");
-            }
+            behaviorMode = 1 - behaviorMode; // Toggle between wander and attack
+            updateBehaviorMode();
             scheduleSend();
         });
 
         btnModeToggle.setOnClickListener(v -> {
             debugMode = !debugMode;
             btnModeToggle.setSelected(debugMode);
+            btnModeToggle.setImageResource(debugMode ? R.drawable.ic_debug : R.drawable.ic_run);
             tvModeStatus.setText(debugMode ? "调试模式" : "运行模式");
             metricPanel.setVisibility(debugMode ? View.VISIBLE : View.GONE);
             scheduleSend();
@@ -157,10 +155,9 @@ public class MainActivity extends AppCompatActivity {
 
         btnSettings.setOnClickListener(v -> showSettingsDialog());
 
-        btnBehaviorToggle.setImageResource(R.drawable.ic_wander);
+        updateBehaviorMode();
         btnModeToggle.setSelected(false);
         tvModeStatus.setText("运行模式");
-        tvBehaviorStatus.setText("游走");
         metricPanel.setVisibility(View.GONE);
         setStatus(false);
     }
@@ -171,14 +168,70 @@ public class MainActivity extends AppCompatActivity {
         sendHandler.postDelayed(() -> {
             sendPending = false;
             if (tcp.isConnected()) {
-                float rawIntensity = (float) Math.sqrt(joystickX * joystickX + joystickY * joystickY);
-                float intensity = debugMode ? rawIntensity * 0.3f : rawIntensity;
-                int speed = (int) (intensity * 100);
-                tvIntensity.setText(String.format("%.2f", intensity));
-                CarCommand cmd = new CarCommand(joystickX, joystickY, speed, servoState, fireState, behaviorMode, debugMode ? 1 : 0);
+                float commandIntensity = debugMode ? joystickIntensity * 0.3f : joystickIntensity;
+                int speed = (int) (commandIntensity * 100);
+                int servo = computeServoCommand();
+                updateJoystickMetrics();
+                CarCommand cmd = new CarCommand(joystickX, joystickY, speed, servo, fireState, behaviorMode, debugMode ? 1 : 0);
                 tcp.send(cmd.toJson());
             }
         }, 50); // ~20Hz
+    }
+
+    private void updateJoystickMetrics() {
+        tvIntensity.setText(String.format("%.2f", joystickIntensity));
+        tvX.setText(String.format("%.2f", joystickX));
+        tvY.setText(String.format("%.2f", joystickY));
+    }
+
+    private void updateBehaviorMode() {
+        if (behaviorMode == BEHAVIOR_WANDER) {
+            btnBehaviorToggle.setImageResource(R.drawable.ic_wander);
+            tvBehaviorStatus.setText("游走");
+            btnServoLeft.setEnabled(true);
+            btnServoRight.setEnabled(true);
+            btnServoLeft.setAlpha(1.0f);
+            btnServoRight.setAlpha(1.0f);
+            wanderModeJustSwitched = true; // 标记刚刚切换到游走模式
+        } else {
+            btnBehaviorToggle.setImageResource(R.drawable.ic_attack);
+            tvBehaviorStatus.setText("攻击");
+            btnServoLeft.setEnabled(false);
+            btnServoRight.setEnabled(false);
+            btnServoLeft.setAlpha(0.3f);
+            btnServoRight.setAlpha(0.3f);
+            wanderModeJustSwitched = false;
+        }
+    }
+
+    private int computeServoCommand() {
+        if (behaviorMode == BEHAVIOR_WANDER) {
+            if (wanderModeJustSwitched) {
+                wanderModeJustSwitched = false; // 清除标志，下次允许手动控制
+                return 0; // 切换时调整到90度
+            }
+            return servoState; // 释放后允许手动控制
+        } else if (behaviorMode == BEHAVIOR_ATTACK) {
+            return calculateAttackServo();
+        }
+        return servoState;
+    }
+
+    private int calculateAttackServo() {
+        float targetOffset = getCameraTargetOffset();
+        if (targetOffset < -0.2f) {
+            return -1;
+        } else if (targetOffset > 0.2f) {
+            return 1;
+        }
+        return 0;
+    }
+
+    private float getCameraTargetOffset() {
+        if (cameraView != null) {
+            return cameraView.getTargetOffset();
+        }
+        return 0f;
     }
 
     private void showSettingsDialog() {
@@ -215,7 +268,7 @@ public class MainActivity extends AppCompatActivity {
         if (dialog.getWindow() != null) {
             WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams();
             layoutParams.copyFrom(dialog.getWindow().getAttributes());
-            layoutParams.width = (int) (getResources().getDisplayMetrics().widthPixels * 0.9); // 屏幕宽度的90%
+            layoutParams.width = (int) (getResources().getDisplayMetrics().widthPixels * 0.45); // 约为屏幕宽度的一半
             dialog.getWindow().setAttributes(layoutParams);
         }
     }
