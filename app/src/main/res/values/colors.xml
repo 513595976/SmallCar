@@ -16,4 +16,5 @@
     <color name="status_disconnected">#FF1744</color>
     <color name="speed_track">#1A2A4A</color>
     <color name="speed_thumb">#FFD700</color>
+    <color name="divider">#CCCCCC</color>
 </resources>

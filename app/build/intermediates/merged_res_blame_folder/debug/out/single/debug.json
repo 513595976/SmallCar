@@ -1,0 +1,50 @@
+[
+    {
+        "merged": "com.smallcar.controller.app-merged_res-31:/drawable_ic_arrow_left.xml.flat",
+        "source": "com.smallcar.controller.app-main-33:/drawable/ic_arrow_left.xml"
+    },
+    {
+        "merged": "com.smallcar.controller.app-merged_res-31:/drawable_gear_icon.xml.flat",
+        "source": "com.smallcar.controller.app-main-33:/drawable/gear_icon.xml"
+    },
+    {
+        "merged": "com.smallcar.controller.app-merged_res-31:/drawable_ic_wander.xml.flat",
+        "source": "com.smallcar.controller.app-main-33:/drawable/ic_wander.xml"
+    },
+    {
+        "merged": "com.smallcar.controller.app-merged_res-31:/drawable_ic_attack.xml.flat",
+        "source": "com.smallcar.controller.app-main-33:/drawable/ic_attack.xml"
+    },
+    {
+        "merged": "com.smallcar.controller.app-merged_res-31:/drawable_ic_debug.xml.flat",
+        "source": "com.smallcar.controller.app-main-33:/drawable/ic_debug.xml"
+    },
+    {
+        "merged": "com.smallcar.controller.app-merged_res-31:/drawable_ic_fire.xml.flat",
+        "source": "com.smallcar.controller.app-main-33:/drawable/ic_fire.xml"
+    },
+    {
+        "merged": "com.smallcar.controller.app-merged_res-31:/layout_activity_main.xml.flat",
+        "source": "com.smallcar.controller.app-main-33:/layout/activity_main.xml"
+    },
+    {
+        "merged": "com.smallcar.controller.app-merged_res-31:/drawable_btn_hud.xml.flat",
+        "source": "com.smallcar.controller.app-main-33:/drawable/btn_hud.xml"
+    },
+    {
+        "merged": "com.smallcar.controller.app-merged_res-31:/drawable_ic_run.xml.flat",
+        "source": "com.smallcar.controller.app-main-33:/drawable/ic_run.xml"
+    },
+    {
+        "merged": "com.smallcar.controller.app-merged_res-31:/drawable_ic_arrow_right.xml.flat",
+        "source": "com.smallcar.controller.app-main-33:/drawable/ic_arrow_right.xml"
+    },
+    {
+        "merged": "com.smallcar.controller.app-merged_res-31:/layout_dialog_settings.xml.flat",
+        "source": "com.smallcar.controller.app-main-33:/layout/dialog_settings.xml"
+    },
+    {
+        "merged": "com.smallcar.controller.app-merged_res-31:/drawable_btn_mode.xml.flat",
+        "source": "com.smallcar.controller.app-main-33:/drawable/btn_mode.xml"
+    }
+]

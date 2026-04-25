@@ -5,10 +5,11 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.MotionEvent;
+import android.view.WindowManager;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
-import android.widget.SeekBar;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -23,8 +24,13 @@ public class MainActivity extends AppCompatActivity {
 
     private JoystickView joystick;
     private CameraStreamView cameraView;
-    private SeekBar speedBar;
-    private Button btnHorn, btnLight, btnSettings;
+    private TextView tvIntensity, tvX, tvY;
+    private View metricPanel;
+    private ImageButton btnServoLeft, btnFire, btnServoRight;
+    private ImageButton btnBehaviorToggle;
+    private ImageButton btnModeToggle;
+    private ImageButton btnSettings;
+    private TextView tvModeStatus, tvBehaviorStatus;
     private TextView tvStatus;
     private View statusDot;
 
@@ -32,7 +38,8 @@ public class MainActivity extends AppCompatActivity {
     private final Handler sendHandler = new Handler(Looper.getMainLooper());
 
     private float joystickX = 0f, joystickY = 0f;
-    private int hornState = 0, lightState = 0;
+    private int servoState = 0, fireState = 0, behaviorMode = 0;
+    private boolean debugMode = false;
     private boolean sendPending = false;
 
     @Override
@@ -42,33 +49,119 @@ public class MainActivity extends AppCompatActivity {
 
         joystick = findViewById(R.id.joystick);
         cameraView = findViewById(R.id.cameraView);
-        speedBar = findViewById(R.id.speedBar);
-        btnHorn = findViewById(R.id.btnHorn);
-        btnLight = findViewById(R.id.btnLight);
+        tvIntensity = findViewById(R.id.tvIntensity);
+        tvX = findViewById(R.id.tvX);
+        tvY = findViewById(R.id.tvY);
+        metricPanel = findViewById(R.id.metricPanel);
+        btnBehaviorToggle = findViewById(R.id.btnBehaviorToggle);
+        btnModeToggle = findViewById(R.id.btnModeToggle);
+        btnServoLeft = findViewById(R.id.btnServoLeft);
+        btnFire = findViewById(R.id.btnFire);
+        btnServoRight = findViewById(R.id.btnServoRight);
         btnSettings = findViewById(R.id.btnSettings);
+        tvModeStatus = findViewById(R.id.tvModeStatus);
+        tvBehaviorStatus = findViewById(R.id.tvBehaviorStatus);
         tvStatus = findViewById(R.id.tvStatus);
         statusDot = findViewById(R.id.statusDot);
 
+        btnServoLeft.setAlpha(0.6f);
+        btnServoRight.setAlpha(0.6f);
+        btnFire.setAlpha(0.6f);
+
         joystick.setJoystickListener((x, y) -> {
+            if (debugMode) {
+                // In debug mode, restrict to 4 directions only
+                if (Math.abs(x) > Math.abs(y)) {
+                    y = 0;
+                } else {
+                    x = 0;
+                }
+            }
             joystickX = x;
             joystickY = y;
+            float rawIntensity = (float) Math.sqrt(x * x + y * y);
+            float intensity = debugMode ? rawIntensity * 0.3f : rawIntensity;
+            tvIntensity.setText(String.format("%.2f", intensity));
+            tvX.setText(String.format("%.2f", x));
+            tvY.setText(String.format("%.2f", y));
             scheduleSend();
         });
 
-        btnHorn.setOnClickListener(v -> {
-            hornState = hornState == 0 ? 1 : 0;
-            btnHorn.setAlpha(hornState == 1 ? 1f : 0.6f);
+        btnServoLeft.setOnTouchListener((v, event) -> {
+            if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+                servoState = -1;
+                btnServoLeft.setAlpha(1f);
+                scheduleSend();
+                return true;
+            } else if (event.getActionMasked() == MotionEvent.ACTION_UP
+                    || event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
+                servoState = 0;
+                btnServoLeft.setAlpha(0.6f);
+                scheduleSend();
+                return true;
+            }
+            return false;
+        });
+
+        btnServoRight.setOnTouchListener((v, event) -> {
+            if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+                servoState = 1;
+                btnServoRight.setAlpha(1f);
+                scheduleSend();
+                return true;
+            } else if (event.getActionMasked() == MotionEvent.ACTION_UP
+                    || event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
+                servoState = 0;
+                btnServoRight.setAlpha(0.6f);
+                scheduleSend();
+                return true;
+            }
+            return false;
+        });
+
+        btnFire.setOnTouchListener((v, event) -> {
+            if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+                fireState = 1;
+                btnFire.setAlpha(1f);
+                scheduleSend();
+                return true;
+            } else if (event.getActionMasked() == MotionEvent.ACTION_UP
+                    || event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
+                fireState = 0;
+                btnFire.setAlpha(0.6f);
+                scheduleSend();
+                return true;
+            }
+            return false;
+        });
+
+        btnBehaviorToggle.setOnClickListener(v -> {
+            behaviorMode = 1 - behaviorMode; // Toggle between 0 and 1
+            if (behaviorMode == 0) {
+                btnBehaviorToggle.setImageResource(R.drawable.ic_wander);
+                tvBehaviorStatus.setText("游走");
+            } else {
+                btnBehaviorToggle.setImageResource(R.drawable.ic_attack);
+                tvBehaviorStatus.setText("攻击");
+            }
             scheduleSend();
         });
 
-        btnLight.setOnClickListener(v -> {
-            lightState = lightState == 0 ? 1 : 0;
-            btnLight.setAlpha(lightState == 1 ? 1f : 0.6f);
+        btnModeToggle.setOnClickListener(v -> {
+            debugMode = !debugMode;
+            btnModeToggle.setSelected(debugMode);
+            tvModeStatus.setText(debugMode ? "调试模式" : "运行模式");
+            metricPanel.setVisibility(debugMode ? View.VISIBLE : View.GONE);
             scheduleSend();
         });
 
         btnSettings.setOnClickListener(v -> showSettingsDialog());
 
+        btnBehaviorToggle.setImageResource(R.drawable.ic_wander);
+        btnModeToggle.setSelected(false);
+        tvModeStatus.setText("运行模式");
+        tvBehaviorStatus.setText("游走");
+        metricPanel.setVisibility(View.GONE);
         setStatus(false);
     }
 
@@ -78,8 +171,11 @@ public class MainActivity extends AppCompatActivity {
         sendHandler.postDelayed(() -> {
             sendPending = false;
             if (tcp.isConnected()) {
-                int speed = speedBar.getProgress();
-                CarCommand cmd = new CarCommand(joystickX, joystickY, speed, hornState, lightState);
+                float rawIntensity = (float) Math.sqrt(joystickX * joystickX + joystickY * joystickY);
+                float intensity = debugMode ? rawIntensity * 0.3f : rawIntensity;
+                int speed = (int) (intensity * 100);
+                tvIntensity.setText(String.format("%.2f", intensity));
+                CarCommand cmd = new CarCommand(joystickX, joystickY, speed, servoState, fireState, behaviorMode, debugMode ? 1 : 0);
                 tcp.send(cmd.toJson());
             }
         }, 50); // ~20Hz
@@ -91,7 +187,7 @@ public class MainActivity extends AppCompatActivity {
         EditText etPort = dialogView.findViewById(R.id.etPort);
         EditText etCamera = dialogView.findViewById(R.id.etCamera);
 
-        new AlertDialog.Builder(this, R.style.HudDialog)
+        AlertDialog dialog = new AlertDialog.Builder(this, R.style.HudDialog)
                 .setTitle("连接设置")
                 .setView(dialogView)
                 .setPositiveButton("连接", (d, w) -> {
@@ -114,6 +210,14 @@ public class MainActivity extends AppCompatActivity {
                     setStatus(false);
                 })
                 .show();
+
+        // 设置对话框宽度
+        if (dialog.getWindow() != null) {
+            WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams();
+            layoutParams.copyFrom(dialog.getWindow().getAttributes());
+            layoutParams.width = (int) (getResources().getDisplayMetrics().widthPixels * 0.9); // 屏幕宽度的90%
+            dialog.getWindow().setAttributes(layoutParams);
+        }
     }
 
     private void connectTcp(String ip, int port) {

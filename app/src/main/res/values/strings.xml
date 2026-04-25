@@ -6,7 +6,15 @@
     <string name="settings">设置</string>
     <string name="horn">喇叭</string>
     <string name="light">灯光</string>
+    <string name="fire">发射</string>
+    <string name="servo_left">舵机左</string>
+    <string name="servo_right">舵机右</string>
+    <string name="wander">游走</string>
+    <string name="attack">攻击</string>
+    <string name="run_mode">运行</string>
+    <string name="debug_mode">调试</string>
     <string name="speed">速度</string>
+    <string name="intensity">强度</string>
     <string name="ip_hint">小车IP地址</string>
     <string name="port_hint">端口</string>
     <string name="camera_url_hint">摄像头URL (可选)</string>

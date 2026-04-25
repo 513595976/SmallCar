@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="accent_blue">#2979FF</color>
+    <color name="accent_blue_dim">#1A3A6B</color>
+    <color name="accent_gold">#FFD700</color>
+    <color name="bg_dark">#0A0A0F</color>
+    <color name="btn_border">#2979FF</color>
+    <color name="btn_normal">#1A2A4A</color>
+    <color name="btn_pressed">#2979FF</color>
+    <color name="divider">#CCCCCC</color>
+    <color name="hud_panel">#CC0D1117</color>
+    <color name="joystick_ring">#2979FF</color>
+    <color name="joystick_thumb">#FFD700</color>
+    <color name="speed_thumb">#FFD700</color>
+    <color name="speed_track">#1A2A4A</color>
+    <color name="status_connected">#00E676</color>
+    <color name="status_disconnected">#FF1744</color>
+    <color name="text_gold">#FFD700</color>
+    <color name="text_primary">#E8E8FF</color>
+    <string name="app_name">小车控制器</string>
+    <string name="attack">攻击</string>
+    <string name="camera_url_hint">摄像头URL (可选)</string>
+    <string name="connect">连接</string>
+    <string name="debug_mode">调试</string>
+    <string name="disconnect">断开</string>
+    <string name="fire">发射</string>
+    <string name="horn">喇叭</string>
+    <string name="intensity">强度</string>
+    <string name="ip_hint">小车IP地址</string>
+    <string name="light">灯光</string>
+    <string name="port_hint">端口</string>
+    <string name="run_mode">运行</string>
+    <string name="servo_left">舵机左</string>
+    <string name="servo_right">舵机右</string>
+    <string name="settings">设置</string>
+    <string name="speed">速度</string>
+    <string name="status_connected">已连接</string>
+    <string name="status_connecting">连接中...</string>
+    <string name="status_disconnected">未连接</string>
+    <string name="wander">游走</string>
+    <style name="HudButton">
+        <item name="android:textColor">@color/text_gold</item>
+        <item name="android:background">@drawable/btn_hud</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:padding">8dp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+    <style name="HudDialog" parent="Theme.MaterialComponents.Dialog">
+        <item name="android:windowBackground">@color/bg_dark</item>
+        <item name="colorPrimary">@color/accent_blue</item>
+        <item name="colorAccent">@color/accent_gold</item>
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_gold</item>
+        <item name="buttonBarPositiveButtonStyle">@style/HudDialogButton</item>
+        <item name="buttonBarNegativeButtonStyle">@style/HudDialogButton</item>
+    </style>
+    <style name="HudDialogButton" parent="Widget.MaterialComponents.Button.TextButton">
+        <item name="android:textColor">@color/accent_gold</item>
+    </style>
+    <style name="Theme.SmallCar" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="android:windowBackground">@color/bg_dark</item>
+        <item name="android:statusBarColor">@color/bg_dark</item>
+        <item name="android:navigationBarColor">@color/bg_dark</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="colorPrimary">@color/accent_blue</item>
+        <item name="colorAccent">@color/accent_gold</item>
+    </style>
+</resources>
