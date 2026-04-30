@@ -356,18 +356,20 @@ class VirtualJoystick:
     def __str__(self):
         """字符串表示"""
         status = self.get_status()
-        return (f"虚拟摇杆 [X:{status['x']:>6.2f} Y:{status['y']:>6.2f} "
-                f"强度:{status['intensity']:.2f} "
-                f"幅度:{status['magnitude']:.2f} "
-                f"方向:{status['direction']}]")
+        msg = "VirtualJoystick [X:{:.2f} Y:{:.2f} ".format(status['x'], status['y'])
+        msg += "Intensity:{:.2f} ".format(status['intensity'])
+        msg += "Magnitude:{:.2f} ".format(status['magnitude'])
+        msg += "Direction:{}]".format(status['direction'])
+        return msg
     
     def __repr__(self):
         """详细表示"""
         status = self.get_status()
-        return (f"VirtualJoystick(x={status['x']}, y={status['y']}, "
-                f"intensity={status['intensity']}, "
-                f"magnitude={status['magnitude']:.2f}, "
-                f"angle={status['angle']:.1f}°)")
+        msg = "VirtualJoystick(x={}, y={}, ".format(status['x'], status['y'])
+        msg += "intensity={}, ".format(status['intensity'])
+        msg += "magnitude={:.2f}, ".format(status['magnitude'])
+        msg += "angle={:.1f} deg)".format(status['angle'])
+        return msg
 
 
 class JoystickDataBuffer:

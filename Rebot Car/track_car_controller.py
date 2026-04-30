@@ -2,29 +2,47 @@ import math
 
 class TrackCarController:
     """
-    履带小车控制类
+    履带小车控制类 (差速转向版)
     
     设计说明：
     - 双电机控制，每条履带一个电机（左电机、右电机）
-    - 车头指向X正方向
+    - 车头始终朝向运动方向（前进或后退）
     - 采用差速转向原理实现复杂运动
-    - 支持原地掉头、大圈转向等复杂运动
+    - 支持原地掉头、斜向运动等
     
     坐标系定义：
     - X轴（-1.0 ~ 1.0）：向右为正，向左为负
     - Y轴（-1.0 ~ 1.0）：向前为正，向后为负
     
-    差速转向公式：
-    - 前进速度(V) = Y轴值
-    - 转向速度(W) = X轴值 × 转向系数
-    - 左电机 = V - W
-    - 右电机 = V + W
+    运动模式：
+    1. 前进方向（Y >= 0）：
+       - 正上 (X=0, Y>0)：直线前进，左右电机同速
+       - 右上 (X>0, Y>0)：斜向右上，左电机快，右电机慢
+       - 左上 (X<0, Y>0)：斜向左上，右电机快，左电机慢
     
-    例如：
+    2. 后退方向（Y < 0）：
+       - 先执行原地调头180度（履带反转仅在调头时出现）
+       - 调头完成后，车头朝后，再进行差速运动
+       - 正下 (X≈0, Y<0)：直线后退
+       - 右下 (X>0, Y<0)：斜向右下，先向右调头，再差速后退
+       - 左下 (X<0, Y<0)：斜向左下，先向左调头，再差速后退
+    
+    差速转向公式：
+    - 基础速度 = |Y| （前后速度幅度）
+    - 转向修正 = X × turning_ratio （左右差速）
+    - 左电机速度 = 基础速度 - 转向修正
+    - 右电机速度 = 基础速度 + 转向修正
+    
+    例如（前进方向）：
     - (X=0, Y=0.8)：直线前进，左电机=0.8，右电机=0.8
-    - (X=0.5, Y=0.8)：右转，左电机=1.0，右电机=0.6（需归一化）
-    - (X=-0.5, Y=0.8)：左转，左电机=0.6，右电机=1.0（需归一化）
+    - (X=0.5, Y=0.8)：右上方向，左电机=1.0，右电机=0.6（归一化后）
+    - (X=-0.5, Y=0.8)：左上方向，左电机=0.6，右电机=1.0（归一化后）
     - (X=1.0, Y=0)：原地右转，左电机=1.0，右电机=-1.0
+    
+    调头逻辑：
+    - 从前进切换到后退时，自动执行180度原地旋转
+    - 根据目标方向的X值决定旋转方向（左下向左转，右下向右转）
+    - 调头过程中履带会出现反转现象
     """
     
     def __init__(self, left_motor=None, right_motor=None):
@@ -106,11 +124,17 @@ class TrackCarController:
         """
         根据摇杆XY值计算左右电机的差速输出
         
-        差速转向公式：
-        - 前进速度(V) = Y轴值（-1.0 ~ 1.0）
-        - 转向速度(W) = X轴值（-1.0 ~ 1.0）
-        - 左电机速度 = V - W
-        - 右电机速度 = V + W
+        差速转向原理：
+        - 车头始终朝向运动方向（前进或后退）
+        - 右上/左上：车头朝前，通过左右履带差速实现斜向前进
+        - 右下/左下：先原地调头180度，车头朝后，再通过差速实现斜向后退
+        - 履带反转仅在调头时出现
+        
+        差速公式：
+        - 基础速度 = |Y| （前后速度）
+        - 转向修正 = X × turning_ratio （左右差速）
+        - 左电机 = 基础速度 - 转向修正
+        - 右电机 = 基础速度 + 转向修正
         
         :return: None
         """
@@ -125,10 +149,17 @@ class TrackCarController:
         
         # 判断前进或后退方向
         if y >= 0:
-            # 向前运动
+            # 向前运动（包括右上、正上、左上）
             forward = True
+            
+            # 如果当前朝向是后退方向，需要先原地掉头
+            if not self._forward_heading:
+                self._perform_heading_change()
+                return
+            
+            self._forward_heading = True
         else:
-            # 向后运动
+            # 向后运动（包括右下、正下、左下）
             forward = False
             
             # 如果当前朝向是前进方向，需要先原地掉头
@@ -139,17 +170,17 @@ class TrackCarController:
             self._forward_heading = False
         
         # 使用差速转向公式计算电机速度
-        # 前进速度 = Y轴（已处理方向）
-        v_forward = abs(y)  # 前进速度
+        # 基础速度 = Y轴的绝对值（前后速度）
+        base_speed = abs(y)
         
-        # 转向速度 = X轴 × 可配置系数
-        w_turn = x * self._turning_speed_ratio  # 转向速度
+        # 转向修正 = X轴 × 转向系数（左右差速）
+        turn_correction = x * self._turning_speed_ratio
         
         # 差速公式：
-        # 左电机 = 前进 - 转向
-        # 右电机 = 前进 + 转向
-        left_speed = v_forward - w_turn
-        right_speed = v_forward + w_turn
+        # 左电机 = 基础速度 - 转向修正
+        # 右电机 = 基础速度 + 转向修正
+        left_speed = base_speed - turn_correction
+        right_speed = base_speed + turn_correction
         
         # 限制在-1.0~1.0范围内
         # 使用归一化处理，保持扭矩输出平衡
@@ -162,9 +193,9 @@ class TrackCarController:
         if abs(x) < 0.1:
             mode = "forward" if forward else "backward"
         elif x > 0:
-            mode = "turn_right"
+            mode = "turn_right" if forward else "turn_right_backward"
         else:
-            mode = "turn_left"
+            mode = "turn_left" if forward else "turn_left_backward"
         
         self._set_motor_output(left_speed, right_speed, mode)
     
@@ -173,21 +204,48 @@ class TrackCarController:
         执行原地掉头动作
         让小车停止并进行180度旋转
         
+        调头逻辑：
+        - 如果目标方向是右下（x>0, y<0），则向右旋转180度
+        - 如果目标方向是左下（x<0, y<0），则向左旋转180度
+        - 如果目标方向是正下（x≈0, y<0），则默认向右旋转
+        
+        注意：当前实现基于计数器（50次调用），假设控制频率约20Hz，
+        实际旋转时间约2.5秒。如需更精确控制，建议改为时间戳方式。
+        
         :return: None
         """
         self._heading_change_counter += 1
         
-        # 原地旋转：左电机反向，右电机正向
-        # 实现180度掉头
-        if self._heading_change_counter < 50:  # 调整旋转时间
-            # 正在旋转
+        # 获取目标方向的X轴值，决定调头方向
+        target_x = self._direction_x
+        
+        # 原地旋转：根据目标方向决定旋转方向
+        if target_x >= 0:
+            # 目标方向偏右或正中，向右旋转
+            # 左电机正向，右电机反向
             rotation_speed = 0.7
-            self._set_motor_output(-rotation_speed, rotation_speed, "rotate")
+            left_motor = rotation_speed
+            right_motor = -rotation_speed
+        else:
+            # 目标方向偏左，向左旋转
+            # 左电机反向，右电机正向
+            rotation_speed = 0.7
+            left_motor = -rotation_speed
+            right_motor = rotation_speed
+        
+        # 调整旋转时间（可根据实际小车调整）
+        # 当前假设控制频率为20Hz，50次 ≈ 2.5秒
+        # 如需更精确，可记录开始时间并计算 elapsed_time
+        if self._heading_change_counter < 50:
+            # 正在旋转
+            mode = "rotate_right" if target_x >= 0 else "rotate_left"
+            self._set_motor_output(left_motor, right_motor, mode)
         else:
             # 旋转完成
             self._heading_change_counter = 0
-            self._forward_heading = False
-            self.calculate_motor_control()  # 重新计算，这次应该是后退
+            # 切换朝向标志
+            self._forward_heading = not self._forward_heading
+            self.calculate_motor_control()  # 重新计算，应用新的朝向
     
     def _set_motor_output(self, left_speed, right_speed, mode):
         """
@@ -352,9 +410,10 @@ class TrackCarController:
     
     def __str__(self):
         """字符串表示"""
-        return (f"履带小车 [模式:{self._mode} 朝向:{self.get_heading()} "
-                f"X:{self._direction_x:>5.2f} Y:{self._direction_y:>5.2f} "
-                f"速度:{self._speed:.2f}]")
+        msg = "TrackCar [Mode:{} Heading:{} ".format(self._mode, self.get_heading())
+        msg += "X:{:.2f} Y:{:.2f} ".format(self._direction_x, self._direction_y)
+        msg += "Speed:{:.2f}]".format(self._speed)
+        return msg
 
 
 class TrackCarSimulator:
